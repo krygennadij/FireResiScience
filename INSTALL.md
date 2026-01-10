@@ -1,4 +1,4 @@
-# Инструкция по установке Calculation_MK
+# Инструкция по установке FireResiScience
 
 ## Быстрая установка
 
@@ -6,7 +6,7 @@
 
 ```bash
 git clone <repository-url>
-cd Calculation_MK
+cd FireResiScience
 ```
 
 ### 2. Создание виртуального окружения
@@ -135,7 +135,7 @@ streamlit run app.py --server.port 8502
 **Решение:** Убедитесь, что вы запускаете из корневой директории проекта:
 
 ```bash
-cd Calculation_MK
+cd FireResiScience
 streamlit run app.py
 ```
 

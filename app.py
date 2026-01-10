@@ -36,7 +36,7 @@ except ImportError as e:
 
 def main():
     st.set_page_config(
-        page_title="Расчет огнестойкости | Calculation_MK",
+        page_title="Расчет огнестойкости | FireResiScience",
         page_icon="🔥",
         layout="wide",
         initial_sidebar_state="expanded"
@@ -170,7 +170,7 @@ def main():
     # SIDEBAR: INPUTS
     # -------------------------------------------------------------------------
     with st.sidebar:
-        st.header("🔥 Calculation_MK")
+        st.header("🔥 FireResiScience")
         st.caption("Расчет огнестойкости стальных конструкций")
         st.divider()
 
