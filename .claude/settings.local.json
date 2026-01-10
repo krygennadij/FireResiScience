@@ -10,7 +10,11 @@
       "Bash(fi)",
       "Bash(python3.12 -m pip install:*)",
       "Bash(\"/c/Users/kryge/AppData/Local/Programs/Python/Python312/python.exe\" -m pip install --upgrade streamlit)",
-      "Bash(python -m streamlit:*)"
+      "Bash(python -m streamlit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git commit:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)"
     ]
   }
 }
