@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:docs.streamlit.io)",
+      "Bash(pip install:*)",
+      "Bash(if [ -d \"venv\" ])",
+      "Bash(then echo \"venv exists\")",
+      "Bash(venv/Scripts/python:*)",
+      "Bash(else echo \"No venv found\")",
+      "Bash(fi)",
+      "Bash(python3.12 -m pip install:*)",
+      "Bash(\"/c/Users/kryge/AppData/Local/Programs/Python/Python312/python.exe\" -m pip install --upgrade streamlit)",
+      "Bash(python -m streamlit:*)"
+    ]
+  }
+}
