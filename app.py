@@ -18,12 +18,12 @@ try:
     from src.validation import ValidationError, validate_all_inputs
     from src.cache_helpers import (
         load_reference_data,
-        calculate_geometry_cached,
         calculate_critical_temp_cached,
         calculate_fire_resistance_cached,
         calculate_heated_perimeter_cached,
         clear_all_caches
     )
+    from src.styles import get_custom_css
 except ImportError as e:
     st.error(f"Ошибка импорта модулей: {e}")
     structural = None
@@ -44,127 +44,8 @@ def main():
 
     st.title("🔥 Расчёт предела огнестойкости стальных строительных конструкций")
 
-    # Улучшенный CSS для современного дизайна
-    st.markdown("""
-    <style>
-    /* Улучшенные заголовки expander */
-    .streamlit-expanderHeader {
-        font-size: 1.1rem !important;
-        font-weight: 600 !important;
-        color: #1f77b4 !important;
-        background-color: #f8f9fa !important;
-        border-radius: 5px !important;
-        padding: 0.5rem !important;
-    }
-
-    /* Кнопки с градиентом */
-    .stButton>button[kind="primary"] {
-        background: linear-gradient(90deg, #FF4B4B 0%, #FF6B6B 100%);
-        border: none;
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
-        transition: all 0.3s ease;
-    }
-
-    .stButton>button[kind="primary"]:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(255, 75, 75, 0.3);
-    }
-
-    /* Метрики с красивыми рамками */
-    [data-testid="stMetric"] {
-        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 4px solid #FF4B4B;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-
-    [data-testid="stMetricLabel"] {
-        font-weight: 600;
-        color: #555;
-    }
-
-    [data-testid="stMetricValue"] {
-        font-size: 1.8rem !important;
-        font-weight: 700;
-        color: #FF4B4B;
-    }
-
-    /* Улучшенные tabs */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background-color: #f8f9fa;
-        padding: 0.5rem;
-        border-radius: 10px;
-    }
-
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        padding: 0 24px;
-        background-color: #ffffff;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-
-    .stTabs [data-baseweb="tab"]:hover {
-        background-color: #fee;
-    }
-
-    .stTabs [aria-selected="true"] {
-        background-color: #FF4B4B !important;
-        color: white !important;
-        font-weight: 600;
-    }
-
-    /* Красивые разделители */
-    hr {
-        margin: 2rem 0;
-        border: none;
-        border-top: 2px solid #f0f2f6;
-    }
-
-    /* Улучшенные контейнеры */
-    [data-testid="stContainer"] {
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        padding: 1rem;
-        background-color: #fafafa;
-    }
-
-    /* Toggle switches */
-    [data-baseweb="toggle"] {
-        background-color: #FF4B4B !important;
-    }
-
-    /* Progress bar */
-    .stProgress > div > div > div {
-        background-color: #FF4B4B !important;
-    }
-
-    /* Заголовок приложения */
-    h1 {
-        color: #262730;
-        padding-bottom: 1rem;
-        border-bottom: 3px solid #FF4B4B;
-        margin-bottom: 2rem;
-    }
-
-    /* Sidebar улучшения */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
-    }
-
-    /* Pills (выбор типа нагрузки) */
-    [data-baseweb="segmented-control"] {
-        border-radius: 10px;
-        padding: 4px;
-        background-color: #f0f2f6;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # Применяем пользовательские CSS-стили
+    st.markdown(get_custom_css(), unsafe_allow_html=True)
     
     # -------------------------------------------------------------------------
     # SIDEBAR: INPUTS
@@ -175,30 +56,7 @@ def main():
         st.divider()
 
     st.sidebar.header("📋 Исходные данные")
-    
-    # Was "Material" here, now moved down.
-    # st.sidebar.subheader("Материал") - Removed duplicate
-    # steel_grade... - Removed duplicate
-    # We need thickness to determine Ryn, but thickness is defined in Geometry section below.
-    # To handle this cyclic dependency in UI (Material usually first), we can:
-    # 1. Ask for thickness in Material section? No, redundant.
-    # 2. Use a default thickness to show initial Ryn, then update calculation with actual thickness.
-    # 3. Move Material section below Geometry?
-    # Let's keep structure but recalculate Ryn for display AFTER geometry is known?
-    # Or just default to <= 10mm for initial display and show "Ryn (normative)" as a result/info?
-    # The user wants to see "Ryn" input/value.
-    
-    # Let's move Geometry BEFORE Material? 
-    # That would be cleaner.
-    # But usually Structural calculation starts with Material.
-    # Let's just create the selectbox here, and calculate the actual properties later.
-    
-    # However, if we want to show the Ryn value to the user in the sidebar, we need the thickness.
-    # For now, let's placeholder the Ryn display or move it down.
-    # Moving Geometry up is a good UX change actually.
-    
-    # Let's reorder: 1. Geometry, 2. Material (dependent on geometry), 3. Loads.
-    
+
     # -------------------------------------------------------------------------
     # 1. Geometry (Moved up)
     # -------------------------------------------------------------------------
@@ -349,9 +207,6 @@ def main():
             else:
                 d = st.number_input(r"Диаметр $D$ (мм)", value=100.0, key="circ_tube_d_nostd")
                 t = st.number_input(r"Толщина стенки $t$ (мм)", value=4.0, key="circ_tube_t_nostd")
-                t = st.number_input(r"Толщина стенки $t$ (мм)", value=4.0, key="circ_tube_t_nostd")
-                geom_params = {"d_mm": d, "t_mm": t}
-
                 geom_params = {"d_mm": d, "t_mm": t}
         
         # Placeholder removed
@@ -637,8 +492,7 @@ def main():
     n_newton = abs(n_load_kn) * 1000.0
     m_newton_m = abs(m_load_kNm) * 1000.0
     q_newton = abs(q_load_kn) * 1000.0
-    q_newton = abs(q_load_kn) * 1000.0
-    
+
     # Use User Input from Sidebar (which defaults to Normative Ryn) 
     # for all calculations in Fire Design context.
     ryn_pascal = ryn_val * 1e6

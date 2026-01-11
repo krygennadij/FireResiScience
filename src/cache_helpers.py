@@ -25,50 +25,6 @@ def load_reference_data():
     }
 
 
-def calculate_geometry_cached(section_code: str, geom_params: Dict[str, Any]) -> Dict[str, float]:
-    """
-    Кэширует расчет геометрических характеристик сечения.
-    TTL: 30 минут.
-
-    Args:
-        section_code: Код типа сечения (ibeam, channel, angle, rect_tube, circ_tube)
-        geom_params: Словарь с геометрическими параметрами
-
-    Returns:
-        dict: Геометрические характеристики в мм
-    """
-    from src import structural, ibeam_data, channel_data, angle_data, pipe_data
-
-    if section_code == "ibeam":
-        if "number" in geom_params:
-            return ibeam_data.get_ibeam_props_mm(geom_params["number"])
-        else:
-            return structural.calculate_geometry_ibeam(**geom_params)
-
-    elif section_code == "channel":
-        if "number" in geom_params:
-            return channel_data.get_channel_props_mm(geom_params["number"])
-
-    elif section_code == "angle":
-        if "number" in geom_params:
-            props = angle_data.get_angle_props_mm(geom_params["number"])
-            # Для уголков используем минимальный радиус инерции
-            if "i_min" in props:
-                props["iy"] = props["i_min"]
-            return props
-
-    elif section_code == "rect_tube":
-        return structural.calculate_geometry_rect_tube(**geom_params)
-
-    elif section_code == "circ_tube":
-        if "number" in geom_params and pipe_data.PIPE_DATA:
-            return pipe_data.get_pipe_props_mm(geom_params["number"])
-        else:
-            return structural.calculate_geometry_circ_tube(**geom_params)
-
-    return {}
-
-
 @st.cache_data(ttl=1800, show_spinner=False)
 def calculate_critical_temp_cached(gamma_t: float, steel_grade: str) -> Dict[str, Any]:
     """

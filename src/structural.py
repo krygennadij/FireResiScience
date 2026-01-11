@@ -235,9 +235,6 @@ def get_phi_coeffs(section_type):
     elif section_type == "angle":
         # Curve 'b' for angles (rolled)
         return 0.04, 0.09, 4.4, 'b'
-    elif section_type == "circ_tube":
-        # Curve 'a' (0.03, 0.06) - Hot deformed pipes usually
-        return 0.03, 0.06, 4.4, 'a'
     else:
         # Default curve b
         return 0.04, 0.09, 4.4, 'b'
