@@ -1052,27 +1052,20 @@ def main():
 
         # Параметры расчета
         st.subheader("Параметры расчета")
-        col_v1, col_v2 = st.columns(2)
 
-        with col_v1:
-            max_time_validation = st.slider(
-                "Время расчета (мин)",
-                min_value=10,
-                max_value=180,
-                value=90,
-                step=10,
-                help="Максимальное время моделирования прогрева"
-            )
+        # Фиксированное время расчета
+        max_time_validation = 60  # мин
 
-        with col_v2:
-            crit_temp_validation = st.number_input(
-                "Критическая температура (°C)",
-                min_value=200,
-                max_value=900,
-                value=500,
-                step=10,
-                help="Температура для отображения на графике (опционально)"
-            )
+        crit_temp_validation = st.number_input(
+            "Критическая температура (°C)",
+            min_value=200,
+            max_value=900,
+            value=500,
+            step=10,
+            help="Температура для отображения на графике (опционально)"
+        )
+
+        st.info(f"ℹ️ Время расчета: {max_time_validation} минут")
 
         # Приведенные толщины для расчета
         thicknesses = [3, 5, 10, 15, 20]  # мм
@@ -1088,6 +1081,23 @@ def main():
             # Цветовая палитра
             colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
 
+            # Добавляем стандартную температурную кривую (первой в легенде)
+            time_points = np.linspace(0, max_time_validation, 200)
+            temp_gas = [thermal.standard_fire_curve(t * 60) - 273.15 for t in time_points]
+
+            fig_validation.add_trace(go.Scatter(
+                x=time_points,
+                y=temp_gas,
+                mode='lines',
+                name='Стандартный температурный режим',
+                line=dict(color='red', width=2, dash='dash'),
+                hovertemplate='<b>Стандартный температурный режим</b><br>' +
+                              'Время: %{x:.1f} мин<br>' +
+                              'Температура: %{y:.0f} °C<br>' +
+                              '<extra></extra>'
+            ))
+
+            # Добавляем кривые прогрева для разных толщин
             for i, delta_np in enumerate(thicknesses):
                 # Рассчитываем Am_V (коэффициент сечения)
                 # Am_V = P/A = 1/delta_np (в м)
@@ -1109,27 +1119,11 @@ def main():
                     mode='lines',
                     name=f'δnp = {delta_np} мм',
                     line=dict(color=colors[i], width=2.5),
-                    hovertemplate='<b>δnp = %{fullData.name}</b><br>' +
+                    hovertemplate='<b>%{fullData.name}</b><br>' +
                                   'Время: %{x:.1f} мин<br>' +
                                   'Температура: %{y:.0f} °C<br>' +
                                   '<extra></extra>'
                 ))
-
-            # Добавляем стандартную кривую пожара
-            time_points = np.linspace(0, max_time_validation, 200)
-            temp_gas = [thermal.standard_fire_curve(t * 60) - 273.15 for t in time_points]
-
-            fig_validation.add_trace(go.Scatter(
-                x=time_points,
-                y=temp_gas,
-                mode='lines',
-                name='Температура газов',
-                line=dict(color='red', width=2, dash='dash'),
-                hovertemplate='<b>Температура газов</b><br>' +
-                              'Время: %{x:.1f} мин<br>' +
-                              'Температура: %{y:.0f} °C<br>' +
-                              '<extra></extra>'
-            ))
 
             # Добавляем линию критической температуры
             fig_validation.add_hline(
