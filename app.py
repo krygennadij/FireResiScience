@@ -1164,10 +1164,23 @@ def main():
             # Добавление экспериментальных данных из файла Книга1.xlsx
             try:
                 import os
-                exp_file_path = os.path.join(os.path.dirname(__file__), "Книга1.xlsx")
 
-                if os.path.exists(exp_file_path):
-                    exp_data = pd.read_excel(exp_file_path)
+                # Пробуем несколько вариантов пути к файлу
+                possible_paths = [
+                    "Книга1.xlsx",  # Относительно текущей директории (работает на Streamlit Cloud)
+                    os.path.join(os.path.dirname(__file__), "Книга1.xlsx"),  # Относительно app.py
+                    os.path.join(os.getcwd(), "Книга1.xlsx")  # Относительно рабочей директории
+                ]
+
+                exp_file_path = None
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        exp_file_path = path
+                        break
+
+                if exp_file_path and os.path.exists(exp_file_path):
+                    # Загрузка данных с явным указанием движка
+                    exp_data = pd.read_excel(exp_file_path, engine='openpyxl')
 
                     # Маркеры для экспериментальных данных
                     exp_markers = ['circle', 'square', 'diamond', 'cross', 'x']
@@ -1205,6 +1218,8 @@ def main():
                                 ))
             except Exception as e:
                 # Если файл не найден или ошибка чтения - продолжаем без экспериментальных данных
+                # В режиме разработки можно раскомментировать для отладки:
+                # st.warning(f"Экспериментальные данные не загружены: {e}")
                 pass
 
             # Отображение графика
