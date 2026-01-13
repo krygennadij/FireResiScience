@@ -139,3 +139,7 @@ fire_resistance_report.docx
 # Temporary files
 *.tmp
 *.bak
+tmpclaude-*
+
+# Sample data
+sample_experiment.csv

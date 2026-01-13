@@ -619,7 +619,7 @@ def main():
 
     # TABS
     # TABS
-    tab_calc, tab_report = st.tabs(["📝 Расчет", "📄 Отчет"])
+    tab_calc, tab_report, tab_validation = st.tabs(["📝 Расчет", "📄 Отчет", "🔬 Валидация"])
     
     # --- TAB 1: DETAILED CALCULATION ---
     with tab_calc:
@@ -1041,6 +1041,228 @@ def main():
                     type="primary",
                     use_container_width=True
                 )
+
+    # --- TAB 3: VALIDATION ---
+    with tab_validation:
+        st.header("🔬 Валидация модели прогрева")
+        st.markdown("""
+        График прогрева стальной конструкции при стандартном температурном режиме пожара
+        для различных значений приведенной толщины металла.
+        """)
+
+        # Параметры расчета
+        st.subheader("Параметры расчета")
+        col_v1, col_v2 = st.columns(2)
+
+        with col_v1:
+            max_time_validation = st.slider(
+                "Время расчета (мин)",
+                min_value=10,
+                max_value=180,
+                value=90,
+                step=10,
+                help="Максимальное время моделирования прогрева"
+            )
+
+        with col_v2:
+            crit_temp_validation = st.number_input(
+                "Критическая температура (°C)",
+                min_value=200,
+                max_value=900,
+                value=500,
+                step=10,
+                help="Температура для отображения на графике (опционально)"
+            )
+
+        # Приведенные толщины для расчета
+        thicknesses = [3, 5, 10, 15, 20]  # мм
+
+        st.divider()
+        st.subheader("График прогрева конструкции")
+
+        # Выполняем расчеты для разных толщин
+        with st.spinner("Выполняется расчет прогрева..."):
+            # Создаем график
+            fig_validation = go.Figure()
+
+            # Цветовая палитра
+            colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+
+            for i, delta_np in enumerate(thicknesses):
+                # Рассчитываем Am_V (коэффициент сечения)
+                # Am_V = P/A = 1/delta_np (в м)
+                am_v = 1000.0 / delta_np  # Переводим мм в м: 1/м
+
+                # Выполняем расчет прогрева
+                fire_res = thermal.calculate_fire_resistance(
+                    Am_V=am_v,
+                    crit_temp=crit_temp_validation,
+                    protection_type="unprotected",
+                    max_time_min=max_time_validation
+                )
+
+                # Добавляем линию на график
+                history = fire_res["history"]
+                fig_validation.add_trace(go.Scatter(
+                    x=history["Time_min"],
+                    y=history["T_steel"],
+                    mode='lines',
+                    name=f'δnp = {delta_np} мм',
+                    line=dict(color=colors[i], width=2.5),
+                    hovertemplate='<b>δnp = %{fullData.name}</b><br>' +
+                                  'Время: %{x:.1f} мин<br>' +
+                                  'Температура: %{y:.0f} °C<br>' +
+                                  '<extra></extra>'
+                ))
+
+            # Добавляем стандартную кривую пожара
+            time_points = np.linspace(0, max_time_validation, 200)
+            temp_gas = [thermal.standard_fire_curve(t * 60) - 273.15 for t in time_points]
+
+            fig_validation.add_trace(go.Scatter(
+                x=time_points,
+                y=temp_gas,
+                mode='lines',
+                name='Температура газов',
+                line=dict(color='red', width=2, dash='dash'),
+                hovertemplate='<b>Температура газов</b><br>' +
+                              'Время: %{x:.1f} мин<br>' +
+                              'Температура: %{y:.0f} °C<br>' +
+                              '<extra></extra>'
+            ))
+
+            # Добавляем линию критической температуры
+            fig_validation.add_hline(
+                y=crit_temp_validation,
+                line_dash="dot",
+                line_color="gray",
+                annotation_text=f"Tcr = {crit_temp_validation}°C",
+                annotation_position="right"
+            )
+
+            # Настройка графика
+            fig_validation.update_layout(
+                title=dict(
+                    text="Прогрев стальной конструкции при стандартном пожаре",
+                    font=dict(size=18, family="Arial")
+                ),
+                xaxis=dict(
+                    title="Время, мин",
+                    gridcolor='lightgray',
+                    showgrid=True,
+                    zeroline=False
+                ),
+                yaxis=dict(
+                    title="Температура, °C",
+                    gridcolor='lightgray',
+                    showgrid=True,
+                    zeroline=False
+                ),
+                legend=dict(
+                    title="Легенда",
+                    orientation="v",
+                    yanchor="top",
+                    y=0.98,
+                    xanchor="left",
+                    x=0.02,
+                    bgcolor="rgba(255, 255, 255, 0.8)",
+                    bordercolor="gray",
+                    borderwidth=1
+                ),
+                hovermode='x unified',
+                plot_bgcolor='white',
+                height=600,
+                margin=dict(l=60, r=40, t=80, b=60)
+            )
+
+            # Отображение графика
+            st.plotly_chart(fig_validation, use_container_width=True)
+
+        st.divider()
+
+        # Секция для загрузки экспериментальных данных
+        st.subheader("📊 Добавление экспериментальных данных")
+
+        st.markdown("""
+        Загрузите файл с экспериментальными данными в формате CSV или Excel.
+
+        **Формат файла:**
+        - Столбец 1: Время (мин)
+        - Столбец 2: Температура (°C)
+        - Столбец 3 (опционально): Приведенная толщина δnp (мм)
+        """)
+
+        uploaded_file = st.file_uploader(
+            "Выберите файл с данными",
+            type=['csv', 'xlsx', 'xls'],
+            help="Загрузите файл CSV или Excel с экспериментальными данными"
+        )
+
+        if uploaded_file is not None:
+            try:
+                # Читаем файл
+                if uploaded_file.name.endswith('.csv'):
+                    exp_data = pd.read_csv(uploaded_file)
+                else:
+                    exp_data = pd.read_excel(uploaded_file)
+
+                st.success(f"✅ Файл загружен: {uploaded_file.name}")
+
+                # Показываем предварительный просмотр
+                with st.expander("Просмотр загруженных данных", expanded=False):
+                    st.dataframe(exp_data.head(10), use_container_width=True)
+
+                # Настройки для экспериментальных данных
+                col_exp1, col_exp2, col_exp3 = st.columns(3)
+
+                with col_exp1:
+                    time_col = st.selectbox(
+                        "Столбец с временем",
+                        options=exp_data.columns.tolist(),
+                        index=0
+                    )
+
+                with col_exp2:
+                    temp_col = st.selectbox(
+                        "Столбец с температурой",
+                        options=exp_data.columns.tolist(),
+                        index=1 if len(exp_data.columns) > 1 else 0
+                    )
+
+                with col_exp3:
+                    exp_label = st.text_input(
+                        "Название серии",
+                        value="Эксперимент"
+                    )
+
+                if st.button("Добавить на график", type="primary"):
+                    # Создаем новый график с экспериментальными данными
+                    fig_with_exp = go.Figure(fig_validation)
+
+                    # Добавляем экспериментальные данные
+                    fig_with_exp.add_trace(go.Scatter(
+                        x=exp_data[time_col],
+                        y=exp_data[temp_col],
+                        mode='markers',
+                        name=exp_label,
+                        marker=dict(
+                            size=8,
+                            color='black',
+                            symbol='circle',
+                            line=dict(width=1, color='white')
+                        ),
+                        hovertemplate='<b>' + exp_label + '</b><br>' +
+                                      'Время: %{x:.1f} мин<br>' +
+                                      'Температура: %{y:.0f} °C<br>' +
+                                      '<extra></extra>'
+                    ))
+
+                    st.plotly_chart(fig_with_exp, use_container_width=True)
+                    st.success("✅ Экспериментальные данные добавлены на график!")
+
+            except Exception as e:
+                st.error(f"❌ Ошибка при загрузке файла: {e}")
+                st.info("💡 Убедитесь, что файл имеет правильный формат")
 
 
 if __name__ == "__main__":
