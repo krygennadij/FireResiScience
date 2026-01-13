@@ -18,7 +18,8 @@
       "Bash(find:*)",
       "Bash(python -m py_compile:*)",
       "Bash(flake8:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(pytest:*)"
     ]
   }
 }
