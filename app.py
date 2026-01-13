@@ -1138,27 +1138,43 @@ def main():
             fig_validation.update_layout(
                 title=dict(
                     text="Прогрев стальной конструкции при стандартном пожаре",
+                    x=0.5,
+                    xanchor='center',
+                    yanchor='top',
                     font=dict(size=18, family="Arial")
                 ),
                 xaxis=dict(
                     title="Время, мин",
-                    gridcolor='lightgray',
-                    showgrid=True,
-                    zeroline=False
+                    showgrid=False,
+                    zeroline=False,
+                    linecolor='black',
+                    linewidth=2,
+                    ticks='outside',
+                    tickwidth=2,
+                    tickcolor='black',
+                    tickfont=dict(color='black'),
+                    title_font=dict(size=14, color='black')
                 ),
                 yaxis=dict(
                     title="Температура, °C",
-                    gridcolor='lightgray',
-                    showgrid=True,
-                    zeroline=False
+                    rangemode="tozero",
+                    showgrid=False,
+                    zeroline=False,
+                    linecolor='black',
+                    linewidth=2,
+                    ticks='outside',
+                    tickwidth=2,
+                    tickcolor='black',
+                    tickfont=dict(color='black'),
+                    title_font=dict(size=14, color='black')
                 ),
                 legend=dict(
                     title="Легенда",
                     orientation="v",
-                    yanchor="top",
-                    y=0.98,
-                    xanchor="left",
-                    x=0.02,
+                    yanchor="bottom",
+                    y=0.01,
+                    xanchor="right",
+                    x=0.99,
                     bgcolor="rgba(255, 255, 255, 0.8)",
                     bordercolor="gray",
                     borderwidth=1
