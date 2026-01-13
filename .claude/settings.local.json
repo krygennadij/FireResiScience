@@ -19,7 +19,10 @@
       "Bash(python -m py_compile:*)",
       "Bash(flake8:*)",
       "Bash(grep:*)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "Bash(python:*)",
+      "Bash(streamlit run:*)",
+      "Bash(curl:*)"
     ]
   }
 }

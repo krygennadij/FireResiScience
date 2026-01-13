@@ -864,7 +864,7 @@ def main():
                     yaxis_title="Температура (°C)",
                     height=500,
                     xaxis=dict(range=[0, 60], dtick=5, showgrid=False, zeroline=False, linecolor='black', linewidth=2, ticks='outside', tickwidth=2, tickcolor='black', tickfont=dict(color='black'), title_font=dict(size=14, color='black')),
-                    yaxis=dict(dtick=100, rangemode="tozero", showgrid=False, zeroline=False, linecolor='black', linewidth=2, ticks='outside', tickwidth=2, tickcolor='black', tickfont=dict(color='black'), title_font=dict(size=14, color='black')),
+                    yaxis=dict(range=[0, 1000], dtick=100, showgrid=False, zeroline=False, linecolor='black', linewidth=2, ticks='outside', tickwidth=2, tickcolor='black', tickfont=dict(color='black'), title_font=dict(size=14, color='black')),
                     plot_bgcolor='white', # Clean white background
                     margin=dict(l=20, r=20, t=40, b=20),
                     hovermode="x unified",
@@ -874,7 +874,7 @@ def main():
                         bgcolor="rgba(255, 255, 255, 0.8)", # Transparent white
                         bordercolor="white", borderwidth=0 # No border for legend as per clean look, or keep it? User said "like screenshot". Screenshot has NO legend visible or maybe hidden? I'll make it clean but keep it for clarity with simple style.
                         # Wait, user screenshot example has NO legend box. Just curves.
-                        # But I should probably keep legend for user to know which is which. 
+                        # But I should probably keep legend for user to know which is which.
                         # I'll keep default simple legend but maybe no border.
                     )
                 )
@@ -1074,7 +1074,7 @@ def main():
                 y=temp_gas,
                 mode='lines',
                 name='Стандартный температурный режим',
-                line=dict(color='red', width=2, dash='dash'),
+                line=dict(color='red', width=2),
                 hovertemplate='<b>Стандартный температурный режим</b><br>' +
                               'Время: %{x:.1f} мин<br>' +
                               'Температура: %{y:.0f} °C<br>' +
@@ -1102,7 +1102,7 @@ def main():
                     y=history["T_steel"],
                     mode='lines',
                     name=f'δnp = {delta_np} мм',
-                    line=dict(color=colors[i], width=2.5),
+                    line=dict(color=colors[i], width=2.5, dash='dash'),
                     hovertemplate='<b>%{fullData.name}</b><br>' +
                                   'Время: %{x:.1f} мин<br>' +
                                   'Температура: %{y:.0f} °C<br>' +
@@ -1133,7 +1133,7 @@ def main():
                 ),
                 yaxis=dict(
                     title="Температура, °C",
-                    rangemode="tozero",
+                    range=[0, 1000],
                     showgrid=False,
                     zeroline=False,
                     linecolor='black',
