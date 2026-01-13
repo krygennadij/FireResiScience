@@ -1050,28 +1050,12 @@ def main():
         для различных значений приведенной толщины металла.
         """)
 
-        # Параметры расчета
-        st.subheader("Параметры расчета")
-
-        # Фиксированное время расчета
+        # Фиксированные параметры расчета
         max_time_validation = 60  # мин
-
-        crit_temp_validation = st.number_input(
-            "Критическая температура (°C)",
-            min_value=200,
-            max_value=900,
-            value=500,
-            step=10,
-            help="Температура для отображения на графике (опционально)"
-        )
-
-        st.info(f"ℹ️ Время расчета: {max_time_validation} минут")
+        crit_temp_validation = 500  # °C
 
         # Приведенные толщины для расчета
         thicknesses = [3, 5, 10, 15, 20]  # мм
-
-        st.divider()
-        st.subheader("График прогрева конструкции")
 
         # Выполняем расчеты для разных толщин
         with st.spinner("Выполняется расчет прогрева..."):
@@ -1125,15 +1109,6 @@ def main():
                                   '<extra></extra>'
                 ))
 
-            # Добавляем линию критической температуры
-            fig_validation.add_hline(
-                y=crit_temp_validation,
-                line_dash="dot",
-                line_color="gray",
-                annotation_text=f"Tcr = {crit_temp_validation}°C",
-                annotation_position="right"
-            )
-
             # Настройка графика
             fig_validation.update_layout(
                 title=dict(
@@ -1145,6 +1120,7 @@ def main():
                 ),
                 xaxis=dict(
                     title="Время, мин",
+                    range=[0, max_time_validation],
                     showgrid=False,
                     zeroline=False,
                     linecolor='black',
