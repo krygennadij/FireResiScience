@@ -1161,15 +1161,15 @@ def main():
                 margin=dict(l=60, r=40, t=80, b=60)
             )
 
-            # Добавление экспериментальных данных из файла Книга1.xlsx
+            # Добавление экспериментальных данных из файла experimental_data.json
             try:
                 import os
 
                 # Пробуем несколько вариантов пути к файлу
                 possible_paths = [
-                    "Книга1.xlsx",  # Относительно текущей директории (работает на Streamlit Cloud)
-                    os.path.join(os.path.dirname(__file__), "Книга1.xlsx"),  # Относительно app.py
-                    os.path.join(os.getcwd(), "Книга1.xlsx")  # Относительно рабочей директории
+                    "experimental_data.json",  # Относительно текущей директории (работает на Streamlit Cloud)
+                    os.path.join(os.path.dirname(__file__), "experimental_data.json"),  # Относительно app.py
+                    os.path.join(os.getcwd(), "experimental_data.json")  # Относительно рабочей директории
                 ]
 
                 exp_file_path = None
@@ -1179,8 +1179,8 @@ def main():
                         break
 
                 if exp_file_path and os.path.exists(exp_file_path):
-                    # Загрузка данных с явным указанием движка
-                    exp_data = pd.read_excel(exp_file_path, engine='openpyxl')
+                    # Загрузка данных из JSON (быстрее и не требует дополнительных библиотек)
+                    exp_data = pd.read_json(exp_file_path)
 
                     # Маркеры для экспериментальных данных
                     exp_markers = ['circle', 'square', 'diamond', 'cross', 'x']

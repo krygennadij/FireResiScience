@@ -4,4 +4,3 @@ plotly
 numpy
 python-docx
 kaleido
-openpyxl
