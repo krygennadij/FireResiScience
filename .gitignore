@@ -140,6 +140,3 @@ fire_resistance_report.docx
 *.tmp
 *.bak
 tmpclaude-*
-
-# Sample data
-sample_experiment.csv

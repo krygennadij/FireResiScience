@@ -1175,94 +1175,54 @@ def main():
                 margin=dict(l=60, r=40, t=80, b=60)
             )
 
+            # Добавление экспериментальных данных из файла Книга1.xlsx
+            try:
+                import os
+                exp_file_path = os.path.join(os.path.dirname(__file__), "Книга1.xlsx")
+
+                if os.path.exists(exp_file_path):
+                    exp_data = pd.read_excel(exp_file_path)
+
+                    # Маркеры для экспериментальных данных
+                    exp_markers = ['circle', 'square', 'diamond', 'cross', 'x']
+
+                    # Добавляем экспериментальные данные для каждой толщины
+                    exp_columns = {
+                        "3 мм": (3, colors[0]),
+                        "5 мм": (5, colors[1]),
+                        "10 мм": (10, colors[2]),
+                        "15 мм": (15, colors[3]),
+                        "20 мм": (20, colors[4])
+                    }
+
+                    for idx, (col_name, (delta_np, color)) in enumerate(exp_columns.items()):
+                        if col_name in exp_data.columns:
+                            # Фильтруем NaN значения
+                            valid_data = exp_data[['Время, мин', col_name]].dropna()
+
+                            if not valid_data.empty:
+                                fig_validation.add_trace(go.Scatter(
+                                    x=valid_data['Время, мин'],
+                                    y=valid_data[col_name],
+                                    mode='markers',
+                                    name=f'Эксперимент δnp = {delta_np} мм',
+                                    marker=dict(
+                                        size=10,
+                                        color=color,
+                                        symbol=exp_markers[idx],
+                                        line=dict(width=2, color='white')
+                                    ),
+                                    hovertemplate='<b>Эксперимент δnp = ' + str(delta_np) + ' мм</b><br>' +
+                                                  'Время: %{x:.1f} мин<br>' +
+                                                  'Температура: %{y:.0f} °C<br>' +
+                                                  '<extra></extra>'
+                                ))
+            except Exception as e:
+                # Если файл не найден или ошибка чтения - продолжаем без экспериментальных данных
+                pass
+
             # Отображение графика
             st.plotly_chart(fig_validation, use_container_width=True)
-
-        st.divider()
-
-        # Секция для загрузки экспериментальных данных
-        st.subheader("📊 Добавление экспериментальных данных")
-
-        st.markdown("""
-        Загрузите файл с экспериментальными данными в формате CSV или Excel.
-
-        **Формат файла:**
-        - Столбец 1: Время (мин)
-        - Столбец 2: Температура (°C)
-        - Столбец 3 (опционально): Приведенная толщина δnp (мм)
-        """)
-
-        uploaded_file = st.file_uploader(
-            "Выберите файл с данными",
-            type=['csv', 'xlsx', 'xls'],
-            help="Загрузите файл CSV или Excel с экспериментальными данными"
-        )
-
-        if uploaded_file is not None:
-            try:
-                # Читаем файл
-                if uploaded_file.name.endswith('.csv'):
-                    exp_data = pd.read_csv(uploaded_file)
-                else:
-                    exp_data = pd.read_excel(uploaded_file)
-
-                st.success(f"✅ Файл загружен: {uploaded_file.name}")
-
-                # Показываем предварительный просмотр
-                with st.expander("Просмотр загруженных данных", expanded=False):
-                    st.dataframe(exp_data.head(10), use_container_width=True)
-
-                # Настройки для экспериментальных данных
-                col_exp1, col_exp2, col_exp3 = st.columns(3)
-
-                with col_exp1:
-                    time_col = st.selectbox(
-                        "Столбец с временем",
-                        options=exp_data.columns.tolist(),
-                        index=0
-                    )
-
-                with col_exp2:
-                    temp_col = st.selectbox(
-                        "Столбец с температурой",
-                        options=exp_data.columns.tolist(),
-                        index=1 if len(exp_data.columns) > 1 else 0
-                    )
-
-                with col_exp3:
-                    exp_label = st.text_input(
-                        "Название серии",
-                        value="Эксперимент"
-                    )
-
-                if st.button("Добавить на график", type="primary"):
-                    # Создаем новый график с экспериментальными данными
-                    fig_with_exp = go.Figure(fig_validation)
-
-                    # Добавляем экспериментальные данные
-                    fig_with_exp.add_trace(go.Scatter(
-                        x=exp_data[time_col],
-                        y=exp_data[temp_col],
-                        mode='markers',
-                        name=exp_label,
-                        marker=dict(
-                            size=8,
-                            color='black',
-                            symbol='circle',
-                            line=dict(width=1, color='white')
-                        ),
-                        hovertemplate='<b>' + exp_label + '</b><br>' +
-                                      'Время: %{x:.1f} мин<br>' +
-                                      'Температура: %{y:.0f} °C<br>' +
-                                      '<extra></extra>'
-                    ))
-
-                    st.plotly_chart(fig_with_exp, use_container_width=True)
-                    st.success("✅ Экспериментальные данные добавлены на график!")
-
-            except Exception as e:
-                st.error(f"❌ Ошибка при загрузке файла: {e}")
-                st.info("💡 Убедитесь, что файл имеет правильный формат")
 
 
 if __name__ == "__main__":
