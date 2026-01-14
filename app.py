@@ -280,7 +280,7 @@ def main():
 
     # 2. Material
     with st.sidebar.expander("Материал", expanded=True):
-        steel_grade = st.selectbox("Марка стали", ["C235", "C245", "C255", "C345", "C345K", "C355", "C355-1", "C390"], key="steel_grade_select")
+        steel_grade = st.selectbox("Марка стали", ["C235", "C245", "C255", "C345", "C345K", "C355", "C355-1", "C390"], index=3, key="steel_grade_select")
 
         # Determine determining thickness (usually flange thickness tf or wall t)
         thickness_for_ry = 10.0 # default
@@ -305,7 +305,7 @@ def main():
 
         # Инициализация в session_state если еще нет
         if 'load_type' not in st.session_state:
-            st.session_state.load_type = "Центральное сжатие"
+            st.session_state.load_type = "Изгиб"
 
         load_type = st.pills(
             "load_type_selector",
@@ -837,7 +837,7 @@ def main():
         st.divider()
 
         # 1. Structural Details
-        with st.expander("1. Статическая (прочностная) задача", expanded=False):
+        with st.expander("1. Статическая (прочностная) задача", expanded=True):
             if load_type == "Центральное растяжение":
                  tex_eq = r"\gamma_T = \frac{N}{A \cdot R_{yn} \cdot \gamma_c}"
                  tex_subst = fr"\frac{{{n_newton:.0f}}}{{{fmt_latex_sci(props_si['A'])}\cdot {fmt_latex_ryn_mpa(ryn_pascal)} \cdot {gamma_c}}}"
