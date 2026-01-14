@@ -100,42 +100,109 @@ def main():
             is_standard_ibeam = st.checkbox("Стандартный профиль", value=True)
 
             if is_standard_ibeam and ibeam_data:
-                # Sort numbers numerically
+                # Стандартный профиль из базы ГОСТ
                 opts = sorted(ibeam_data.IBEAM_DATA.keys(), key=lambda x: int(x))
                 def_idx = 5 if len(opts) > 5 else 0
                 ibeam_num = st.selectbox("Номер профиля", opts, index=def_idx, key="ibeam_profile_select")
 
                 d = ibeam_data.IBEAM_DATA[ibeam_num]
-                # st.caption removed
                 geom_params = {"number": ibeam_num}
                 geom_params.update({"h_mm": d['h'], "b_mm": d['b'], "tw_mm": d['s'], "tf_mm": d['t']})
 
             else:
-                h = st.number_input(r"Высота $h$ (мм)", value=200.0, key="ibeam_h")
-                b = st.number_input(r"Ширина полки $b$ (мм)", value=100.0, key="ibeam_b")
-                tw = st.number_input(r"Толщина стенки $t_w$ (мм)", value=6.0, key="ibeam_tw")
-                tf = st.number_input(r"Толщина полки $t_f$ (мм)", value=9.0, key="ibeam_tf")
-                geom_params = {"h_mm": h, "b_mm": b, "tw_mm": tw, "tf_mm": tf}
+                # Нестандартный профиль - выбор способа ввода
+                input_method = st.radio(
+                    "Способ ввода",
+                    ["Расчет по размерам", "Ввод всех характеристик"],
+                    index=0,
+                    key="ibeam_input_method",
+                    horizontal=True,
+                    help="Расчет по размерам - автоматический расчет характеристик. Ввод всех характеристик - для составных сварных сечений"
+                )
+
+                if input_method == "Ввод всех характеристик":
+                    # Полный ввод всех характеристик для составного сечения
+                    st.info("Введите все геометрические характеристики составного сечения")
+                    h = st.number_input(r"Высота $h$ (мм)", value=200.0, key="ibeam_comp_h")
+                    b = st.number_input(r"Ширина полки $b$ (мм)", value=100.0, key="ibeam_comp_b")
+                    tw = st.number_input(r"Толщина стенки $t_w$ (мм)", value=6.0, key="ibeam_comp_tw")
+                    tf = st.number_input(r"Толщина полки $t_f$ (мм)", value=9.0, key="ibeam_comp_tf")
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        area_mm2 = st.number_input(r"Площадь $A$ (мм²)", value=3000.0, key="ibeam_comp_A")
+                        ix_mm4 = st.number_input(r"Момент инерции $I_x$ (мм⁴)", value=10000000.0, format="%.1f", key="ibeam_comp_Ix")
+                        iy_mm4 = st.number_input(r"Момент инерции $I_y$ (мм⁴)", value=500000.0, format="%.1f", key="ibeam_comp_Iy")
+                    with col2:
+                        ix_rad_mm = st.number_input(r"Радиус инерции $i_x$ (мм)", value=50.0, key="ibeam_comp_ix")
+                        iy_rad_mm = st.number_input(r"Радиус инерции $i_y$ (мм)", value=10.0, key="ibeam_comp_iy")
+                        wx_mm3 = st.number_input(r"Момент сопротивления $W_x$ (мм³)", value=100000.0, format="%.1f", key="ibeam_comp_Wx")
+                        sx_mm3 = st.number_input(r"Статический момент $S_x$ (мм³)", value=60000.0, format="%.1f", key="ibeam_comp_Sx")
+
+                    # Сохраняем как готовые характеристики
+                    geom_params = {
+                        "h_mm": h,
+                        "b_mm": b,
+                        "tw_mm": tw,
+                        "tf_mm": tf,
+                        "is_composite": True,
+                        "A": area_mm2,
+                        "Ix": ix_mm4,
+                        "Iy": iy_mm4,
+                        "ix": ix_rad_mm,
+                        "iy": iy_rad_mm,
+                        "Wx": wx_mm3,
+                        "Sx": sx_mm3
+                    }
+                else:
+                    # Расчет по размерам
+                    h = st.number_input(r"Высота $h$ (мм)", value=200.0, key="ibeam_h")
+                    b = st.number_input(r"Ширина полки $b$ (мм)", value=100.0, key="ibeam_b")
+                    tw = st.number_input(r"Толщина стенки $t_w$ (мм)", value=6.0, key="ibeam_tw")
+                    tf = st.number_input(r"Толщина полки $t_f$ (мм)", value=9.0, key="ibeam_tf")
+                    geom_params = {"h_mm": h, "b_mm": b, "tw_mm": tw, "tf_mm": tf}
 
         elif section_code == "channel":
             is_std_channel = st.checkbox("Стандартный профиль", value=True, key="channel_std_check")
+
+            # Количество элементов
+            num_elements = st.radio("Количество элементов", [1, 2], index=0, key="channel_num_elements", horizontal=True, help="Для составного сечения из 2 швеллеров")
+
+            # Тип соединения для 2 швеллеров
+            connection_type = "ibeam"  # По умолчанию
+            if num_elements == 2:
+                connection_type = st.radio(
+                    "Тип соединения",
+                    ["Как двутавр", "Как коробчатое сечение"],
+                    index=0,
+                    key="channel_connection_type",
+                    horizontal=True,
+                    help="Способ соединения двух швеллеров"
+                )
+                # Преобразуем в код
+                connection_type = "ibeam" if connection_type == "Как двутавр" else "box"
+
             if is_std_channel and CHANNEL_DATA:
                 opts = sorted(CHANNEL_DATA.keys(), key=lambda x: float(x.replace('У','').replace('U','')) if x.replace('У','').replace('U','').replace('.','').isdigit() else 0)
                 def_idx = 8 if len(opts) > 8 else 0
                 chan_num = st.selectbox("Номер профиля (ГОСТ 8240-97)", opts, index=def_idx, key="channel_profile_select")
                 d_chan = CHANNEL_DATA[chan_num]
                 # st.caption removed
-                geom_params = {"number": chan_num}
+                geom_params = {"number": chan_num, "num_elements": num_elements, "connection_type": connection_type}
                 geom_params.update({"h_mm": d_chan['h'], "b_mm": d_chan['b'], "tw_mm": d_chan['s'], "tf_mm": d_chan['t']})
             else:
                 h = st.number_input(r"Высота $h$ (мм)", value=200.0, key="channel_h")
                 b = st.number_input(r"Ширина полки $b$ (мм)", value=80.0, key="channel_b")
                 tw = st.number_input(r"Толщина стенки $t_w$ (мм)", value=6.0, key="channel_tw")
                 tf = st.number_input(r"Толщина полки $t_f$ (мм)", value=9.0, key="channel_tf")
-                geom_params = {"h_mm": h, "b_mm": b, "tw_mm": tw, "tf_mm": tf}
+                geom_params = {"h_mm": h, "b_mm": b, "tw_mm": tw, "tf_mm": tf, "num_elements": num_elements, "connection_type": connection_type}
 
         elif section_code == "angle":
             is_std_angle = st.checkbox("Стандартный профиль", value=True, key="angle_std_check")
+
+            # Количество элементов
+            num_elements = st.radio("Количество элементов", [1, 2], index=0, key="angle_num_elements", horizontal=True, help="Для составного сечения из 2 уголков")
+
             if is_std_angle and angle_data.ANGLE_DATA:
                 # Custom sort for Angle keys
                 def sort_key(k):
@@ -156,12 +223,12 @@ def main():
                 angle_name = st.selectbox("Номер уголка (ГОСТ 8509-93)", opts, index=def_idx, key="angle_profile_select")
                 d_ang = angle_data.ANGLE_DATA[angle_name]
                 # st.caption removed
-                geom_params = {"number": angle_name}
+                geom_params = {"number": angle_name, "num_elements": num_elements}
                 geom_params.update({"b_mm": d_ang['b'], "t_mm": d_ang['t']})
             else:
                 b = st.number_input(r"Ширина полки $b$ (мм)", value=100.0, key="angle_b")
                 t = st.number_input(r"Толщина $t$ (мм)", value=10.0, key="angle_t")
-                geom_params = {"b_mm": b, "t_mm": t}
+                geom_params = {"b_mm": b, "t_mm": t, "num_elements": num_elements}
 
         elif section_code == "rect_tube":
             is_std_rect = st.checkbox("Стандартный профиль", value=False, disabled=True, help="База данных профилей пока не подключена", key="rect_std_check")
@@ -284,7 +351,7 @@ def main():
                     mu_val = st.number_input(r"Коэф. расчетной длины $\mu$", value=1.0, key="mu_custom")
                 else:
                     mu_val = schemes[scheme_ui]
-                st.caption(f"Коэффициент расчетной длины $\mu = {mu_val}$")
+                st.caption(fr"Коэффициент расчетной длины $\mu = {mu_val}$")
 
                 # Calculate Effective Length (Same for X and Y as requested)
                 mu_x = mu_val
@@ -343,7 +410,7 @@ def main():
                 # Стиль рамки в зависимости от выбора
                 border_style = "border: 3px solid #FF4B4B;" if current_scheme == "3_sides" else "border: 2px solid #e0e0e0;"
                 st.markdown(f'<div style="{border_style} border-radius: 8px; padding: 5px;">{get_img_html(img_3, 90)}</div>', unsafe_allow_html=True)
-                if st.button("3 стороны", key="btn_3_sides", use_container_width=True, help="Частичный обогрев"):
+                if st.button("3 стороны", key="btn_3_sides", width='stretch', help="Частичный обогрев"):
                     st.session_state.heating_scheme = "3_sides"
                     st.rerun()
 
@@ -351,7 +418,7 @@ def main():
                 # Стиль рамки в зависимости от выбора
                 border_style = "border: 3px solid #FF4B4B;" if current_scheme == "4_sides" else "border: 2px solid #e0e0e0;"
                 st.markdown(f'<div style="{border_style} border-radius: 8px; padding: 5px;">{get_img_html(img_4, 90)}</div>', unsafe_allow_html=True)
-                if st.button("4 стороны", key="btn_4_sides", use_container_width=True, help="Обогрев со всех сторон"):
+                if st.button("4 стороны", key="btn_4_sides", width='stretch', help="Обогрев со всех сторон"):
                     st.session_state.heating_scheme = "4_sides"
                     st.rerun()
 
@@ -409,40 +476,106 @@ def main():
     props_mm = {}
     try:
         if section_code == "ibeam":
-            if is_standard_ibeam and ibeam_data:
+            # Проверка на составное сечение
+            if geom_params.get("is_composite", False):
+                # Используем предоставленные характеристики
+                props_mm = {
+                    "A": geom_params["A"],
+                    "Ix": geom_params["Ix"],
+                    "Iy": geom_params["Iy"],
+                    "ix": geom_params["ix"],
+                    "iy": geom_params["iy"],
+                    "Wx": geom_params["Wx"],
+                    "Sx": geom_params["Sx"],
+                    "tw": geom_params["tw_mm"],
+                    "type": "ibeam",
+                    # Для расчета c1 нужны Af и Aw - рассчитываем упрощенно
+                    "Af": geom_params["b_mm"] * geom_params["tf_mm"],
+                    "Aw": (geom_params["h_mm"] - 2 * geom_params["tf_mm"]) * geom_params["tw_mm"]
+                }
+            elif is_standard_ibeam and ibeam_data:
                 props_mm = ibeam_data.get_ibeam_props_mm(geom_params["number"])
             else:
-                props_mm = structural.calculate_geometry_ibeam(**geom_params)
+                props_mm = structural.calculate_geometry_ibeam(**{k: v for k, v in geom_params.items() if k in ["h_mm", "b_mm", "tw_mm", "tf_mm"]})
+
         elif section_code == "channel":
-             if "number" in geom_params:
-                # We already loaded it inside the sidebar logic block into props_mm? 
-                # No, geom_params has "number". We need to call get_channel_props_mm.
+            if "number" in geom_params:
                 props_mm = channel_data.get_channel_props_mm(geom_params["number"])
-             else:
-                props_mm = structural.calculate_geometry_channel(**geom_params)
+            else:
+                props_mm = structural.calculate_geometry_channel(**{k: v for k, v in geom_params.items() if k in ["h_mm", "b_mm", "tw_mm", "tf_mm"]})
+
+            # Умножение на количество элементов
+            num_elements = geom_params.get("num_elements", 1)
+            connection_type = geom_params.get("connection_type", "ibeam")
+
+            if num_elements == 2:
+                # Умножаем все геометрические характеристики на 2
+                props_mm["A"] *= 2
+                props_mm["Ix"] *= 2
+                props_mm["Iy"] *= 2
+                props_mm["Wx"] *= 2
+                if "Sx" in props_mm:
+                    props_mm["Sx"] *= 2
+                if "Af" in props_mm:
+                    props_mm["Af"] *= 2
+                if "Aw" in props_mm:
+                    props_mm["Aw"] *= 2
+
+                # Радиусы инерции пересчитываем
+                if connection_type == "box":
+                    # Для коробчатого сечения из двух швеллеров используем приближенные формулы
+                    h = geom_params.get('h_mm', 0)
+                    b = geom_params.get('b_mm', 0)
+                    props_mm["ix"] = 0.38 * h
+                    props_mm["iy"] = 0.44 * 2 * b
+                else:
+                    # Для соединения как двутавр - стандартный расчет
+                    props_mm["ix"] = math.sqrt(props_mm["Ix"] / props_mm["A"])
+                    props_mm["iy"] = math.sqrt(props_mm["Iy"] / props_mm["A"])
+
         elif section_code == "angle":
             if "number" in geom_params:
                 props_mm = angle_data.get_angle_props_mm(geom_params["number"])
                 # Important: For Angle stability, usually min radius of gyration is critical.
-                # Standard check uses max lambda = lef / i_min. 
-                # Our structural logic uses lambda_y = lef / iy. 
+                # Standard check uses max lambda = lef / i_min.
+                # Our structural logic uses lambda_y = lef / iy.
                 # So we map iy -> i_min to ensure stability check uses the worst case.
                 if "i_min" in props_mm:
                     props_mm["iy"] = props_mm["i_min"]
             else:
                 pass
+
+            # Умножение на количество элементов
+            num_elements = geom_params.get("num_elements", 1)
+            if num_elements == 2:
+                # Умножаем все геометрические характеристики на 2
+                props_mm["A"] *= 2
+                props_mm["Ix"] *= 2
+                props_mm["Iy"] *= 2
+                if "Wx" in props_mm:
+                    props_mm["Wx"] *= 2
+                if "Sx" in props_mm:
+                    props_mm["Sx"] *= 2
+                # Радиусы инерции пересчитываем
+                props_mm["ix"] = math.sqrt(props_mm["Ix"] / props_mm["A"])
+                props_mm["iy"] = math.sqrt(props_mm["Iy"] / props_mm["A"])
+                if "i_min" in props_mm:
+                    props_mm["i_min"] = min(props_mm["ix"], props_mm["iy"])
+                    props_mm["iy"] = props_mm["i_min"]
+
         elif section_code == "rect_tube":
-            props_mm = structural.calculate_geometry_rect_tube(**geom_params)
+            props_mm = structural.calculate_geometry_rect_tube(**{k: v for k, v in geom_params.items() if k in ["h_mm", "b_mm", "t_mm"]})
+
         elif section_code == "circ_tube":
             if "number" in geom_params and pipe_data.PIPE_DATA:
                 props_mm = pipe_data.get_pipe_props_mm(geom_params["number"])
             else:
-                props_mm = structural.calculate_geometry_circ_tube(**geom_params)
+                props_mm = structural.calculate_geometry_circ_tube(**{k: v for k, v in geom_params.items() if k in ["d_mm", "t_mm"]})
             # Circular tube usually 4 sides only effectively
             if exposure_mode == "3_sides":
                 st.sidebar.warning("Для круглой трубы частичный обогрев рассчитывается как полный (П = pi*d).")
                 exposure_mode = "4_sides"
-                
+
     except Exception as e:
         st.error(f"Ошибка геометрии: {e}")
         return
@@ -522,6 +655,13 @@ def main():
     if "A" not in props_si and "A" in props_mm:
          props_si["A"] = props_mm["A"] * 1e-6 # Manual fallback if not already set
     
+    # Определение коробчатого сечения (для которого Sx = 0)
+    is_box_section = False
+    if section_code == "rect_tube":
+        is_box_section = True
+    elif section_code == "channel" and geom_params.get('num_elements', 1) == 2 and geom_params.get('connection_type', 'ibeam') == "box":
+        is_box_section = True
+
     try:
         if load_type == "Центральное растяжение":
             # Use Ryn (Normative) for Tensile Fire Resistance check?
@@ -531,8 +671,9 @@ def main():
             # 1. Calc Phi using Ryn (User Input / Normative for Fire)
             # Note: Standard uses Ry. Fire Design often uses Normative. User Sidebar is labeled Ryn.
             res_compression = structural.calc_gamma_compression_stability(
-                n_newton, props_si["A"], ryn_pascal, e_pascal, 
-                lef_x, lef_y, props_si["ix"], props_si["iy"], section_code
+                n_newton, props_si["A"], ryn_pascal, e_pascal,
+                lef_x, lef_y, props_si["ix"], props_si["iy"], section_code,
+                gamma_c=1.0, is_box_channel=is_box_section
             )
             gamma_t = res_compression["val"] # This now uses Ryn in denominator automatically via structural calc
         elif load_type == "Изгиб":
@@ -547,15 +688,20 @@ def main():
                 aw = props_mm.get("Aw", 1)
                 c1_res = structural.calc_c1_coefficient(af, aw)
                 c1_val = c1_res["value"]
-            
-            
+
+
             # Use Ryn for Bending Resistance
             gamma_t_bending = structural.calc_gamma_bending(
                 m_newton_m, props_si.get("Wx", 0), ryn_pascal, c1=c1_val
             )
-            gamma_t_shear = structural.calc_gamma_shear(
-                 q_newton, props_si.get("Sx", 0), props_si.get("Ix", 1), props_si.get("tw", 0), ryn_pascal
-             )
+
+            # Для коробчатых сечений проверка по поперечной силе не выполняется (Sx = 0)
+            if is_box_section:
+                gamma_t_shear = 0
+            else:
+                gamma_t_shear = structural.calc_gamma_shear(
+                     q_newton, props_si.get("Sx", 0), props_si.get("Ix", 1), props_si.get("tw", 0), ryn_pascal
+                 )
             gamma_t = max(gamma_t_bending, gamma_t_shear)
     except Exception as e:
         calc_error = str(e)
@@ -569,21 +715,48 @@ def main():
     perimeter_mm = 0
     if section_code == "ibeam":
         perimeter_mm = thermal.calc_heated_perimeter_ibeam(
-            geom_params['h_mm'], geom_params['b_mm'], geom_params['tw_mm'], geom_params['tf_mm'], 
-            exposure=exposure_mode
-        )
-    elif section_code == "channel":
-        perimeter_mm = thermal.calc_heated_perimeter_channel(
             geom_params['h_mm'], geom_params['b_mm'], geom_params['tw_mm'], geom_params['tf_mm'],
             exposure=exposure_mode
         )
+    elif section_code == "channel":
+        num_elements = geom_params.get('num_elements', 1)
+        connection_type = geom_params.get('connection_type', 'ibeam')
+
+        if num_elements == 2:
+            if connection_type == "ibeam":
+                # Два швеллера соединены как двутавр - периметр как у двутавра
+                perimeter_mm = thermal.calc_heated_perimeter_ibeam(
+                    geom_params['h_mm'], geom_params['b_mm'], geom_params['tw_mm'], geom_params['tf_mm'],
+                    exposure=exposure_mode
+                )
+            else:  # connection_type == "box"
+                # Два швеллера соединены как коробчатое сечение - периметр как у прямоугольной трубы
+                perimeter_mm = thermal.calc_heated_perimeter_rect_tube(
+                    geom_params['h_mm'], geom_params['b_mm'],
+                    exposure=exposure_mode
+                )
+        else:
+            # Одиночный швеллер
+            perimeter_mm = thermal.calc_heated_perimeter_channel(
+                geom_params['h_mm'], geom_params['b_mm'], geom_params['tw_mm'], geom_params['tf_mm'],
+                exposure=exposure_mode
+            )
+
     elif section_code == "angle":
         # Formula: A/(2b1+2b2). For equal angle: P = 2b + 2b = 4b.
         b = geom_params.get('b_mm', 0)
-        perimeter_mm = 4 * b
+        num_elements = geom_params.get('num_elements', 1)
+
+        if num_elements == 2:
+            # Спаренные уголки: П = 6*b
+            perimeter_mm = 6 * b
+        else:
+            # Одиночный уголок: П = 4*b
+            perimeter_mm = 4 * b
+
     elif section_code == "rect_tube":
         perimeter_mm = thermal.calc_heated_perimeter_rect_tube(
-            geom_params['h_mm'], geom_params['b_mm'], 
+            geom_params['h_mm'], geom_params['b_mm'],
             exposure=exposure_mode
         )
     elif section_code == "circ_tube":
@@ -703,7 +876,7 @@ def main():
                 curve_code = res_compression.get("curve_code", "?")
                 
                 if phi_method == "low_lambda":
-                    st.write(f"Условие: $\overline{{\lambda}} < 0.6$ (для кривой '{curve_code}')")
+                    st.write(fr"Условие: $\overline{{\lambda}} < 0.6$ (для кривой '{curve_code}')")
                     st.latex(r"\Rightarrow \varphi = 1.0")
                 elif phi_method == "high_lambda":
                     st.markdown(fr"Проверка условия (СП 16.13330):")
@@ -767,12 +940,15 @@ def main():
                 tex_bend_eq = r"\gamma_T = \frac{M}{c_1 \cdot W_x \cdot R_{yn}}"
                 tex_bend_sub = fr"\frac{{{m_newton_m:.0f}}}{{{c1_val:.3f} \cdot {fmt_latex_sci(props_si.get('Wx',0))} \cdot {fmt_latex_ryn_mpa(ryn_pascal)}}}"
                 st.latex(fr"{tex_bend_eq} = {tex_bend_sub} = \mathbf{{{gamma_t_bending:.4f}}}")
-                
+
                 # Shear Display
                 st.markdown(r"**Сдвиг:**")
-                tex_shear_eq = r"\gamma_T = \frac{Q \cdot S_x}{I_x \cdot t_w \cdot R_s}"
-                tex_shear_sub = fr"\frac{{{q_newton:.0f} \cdot {fmt_latex_sci(props_si.get('Sx',0))}}}{{{fmt_latex_sci(props_si.get('Ix',1))} \cdot {fmt_latex_sci(props_si.get('tw',1))} \cdot 0.58 \cdot {fmt_latex_ryn_mpa(ryn_pascal)}}}"
-                st.latex(fr"{tex_shear_eq} = {tex_shear_sub} = \mathbf{{{gamma_t_shear:.4f}}}")
+                if is_box_section:
+                    st.info("Поскольку статический момент симметричного относительно оси x-x сечения равен нулю, то проверка по поперечной силе не выполняется.")
+                else:
+                    tex_shear_eq = r"\gamma_T = \frac{Q \cdot S_x}{I_x \cdot t_w \cdot R_s}"
+                    tex_shear_sub = fr"\frac{{{q_newton:.0f} \cdot {fmt_latex_sci(props_si.get('Sx',0))}}}{{{fmt_latex_sci(props_si.get('Ix',1))} \cdot {fmt_latex_sci(props_si.get('tw',1))} \cdot 0.58 \cdot {fmt_latex_ryn_mpa(ryn_pascal)}}}"
+                    st.latex(fr"{tex_shear_eq} = {tex_shear_sub} = \mathbf{{{gamma_t_shear:.4f}}}")
         
             # Critical Temp Calculation Display (Moved here, dedented)
             st.divider()
@@ -813,18 +989,47 @@ def main():
             
             elif section_code == "channel":
                 h, b, tw = geom_params['h_mm'], geom_params['b_mm'], geom_params['tw_mm']
-                if exposure_mode == "4_sides":
-                    p_formula_tex = r"2h + 4b - 2t_w"
-                    p_subst_tex = fr"2 \cdot {h:.0f} + 4 \cdot {b:.0f} - 2 \cdot {tw:.1f}"
-                else: 
-                    p_formula_tex = r"2h + 3b - 2t_w" 
-                    p_subst_tex = fr"2 \cdot {h:.0f} + 3 \cdot {b:.0f} - 2 \cdot {tw:.1f}"
+                num_elements = geom_params.get('num_elements', 1)
+                connection_type = geom_params.get('connection_type', 'ibeam')
+
+                if num_elements == 2:
+                    if connection_type == "ibeam":
+                        # Два швеллера как двутавр
+                        if exposure_mode == "4_sides":
+                            p_formula_tex = r"2h + 4b - 2t_w"
+                            p_subst_tex = fr"2 \cdot {h:.0f} + 4 \cdot {b:.0f} - 2 \cdot {tw:.1f}"
+                        else:
+                            p_formula_tex = r"2h + 3b - 2t_w"
+                            p_subst_tex = fr"2 \cdot {h:.0f} + 3 \cdot {b:.0f} - 2 \cdot {tw:.1f}"
+                    else:  # connection_type == "box"
+                        # Два швеллера как коробчатое сечение
+                        if exposure_mode == "4_sides":
+                            p_formula_tex = r"2(h + b)"
+                            p_subst_tex = fr"2({h:.0f} + {b:.0f})"
+                        else:
+                            p_formula_tex = r"2h + b"
+                            p_subst_tex = fr"2 \cdot {h:.0f} + {b:.0f}"
+                else:
+                    # Одиночный швеллер
+                    if exposure_mode == "4_sides":
+                        p_formula_tex = r"2h + 4b - 2t_w"
+                        p_subst_tex = fr"2 \cdot {h:.0f} + 4 \cdot {b:.0f} - 2 \cdot {tw:.1f}"
+                    else:
+                        p_formula_tex = r"2h + 3b - 2t_w"
+                        p_subst_tex = fr"2 \cdot {h:.0f} + 3 \cdot {b:.0f} - 2 \cdot {tw:.1f}"
 
             elif section_code == "angle":
                 b = geom_params.get('b_mm', 0)
-                # User formula P = 2b1 + 2b2 = 4b
-                p_formula_tex = r"2b + 2b = 4b"
-                p_subst_tex = fr"4 \cdot {b:.0f}"
+                num_elements = geom_params.get('num_elements', 1)
+
+                if num_elements == 2:
+                    # Спаренные уголки: П = 6b
+                    p_formula_tex = r"6b"
+                    p_subst_tex = fr"6 \cdot {b:.0f}"
+                else:
+                    # Одиночный уголок: П = 4b
+                    p_formula_tex = r"2b + 2b = 4b"
+                    p_subst_tex = fr"4 \cdot {b:.0f}"
                     
             elif section_code == "rect_tube":
                 h, b = geom_params['h_mm'], geom_params['b_mm']
@@ -920,7 +1125,7 @@ def main():
                         font=dict(color="red", size=12)
                     )
 
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
 
                 # Кнопки экспорта данных
                 col_exp1, col_exp2 = st.columns(2)
@@ -1039,7 +1244,7 @@ def main():
                     file_name="fire_resistance_report.docx",
                     mime="application/octet-stream",
                     type="primary",
-                    use_container_width=True
+                    width='stretch'
                 )
 
     # --- TAB 3: VALIDATION ---
@@ -1081,6 +1286,9 @@ def main():
                               '<extra></extra>'
             ))
 
+            # Словарь для хранения расчетных данных (для последующего сравнения с экспериментом)
+            calculated_data = {}
+
             # Добавляем кривые прогрева для разных толщин
             for i, delta_np in enumerate(thicknesses):
                 # Рассчитываем Am_V (коэффициент сечения)
@@ -1097,6 +1305,10 @@ def main():
 
                 # Добавляем линию на график
                 history = fire_res["history"]
+
+                # Сохраняем расчетные данные для сравнения
+                calculated_data[delta_np] = history.copy()
+
                 fig_validation.add_trace(go.Scatter(
                     x=history["Time_min"],
                     y=history["T_steel"],
@@ -1223,7 +1435,138 @@ def main():
                 pass
 
             # Отображение графика
-            st.plotly_chart(fig_validation, use_container_width=True)
+            st.plotly_chart(fig_validation, width='stretch')
+
+            # Создание таблицы с расхождениями между расчетом и экспериментом
+            st.divider()
+            st.subheader("📊 Сравнение расчетных и экспериментальных данных")
+
+            try:
+                # Загрузка экспериментальных данных
+                import os
+                possible_paths = [
+                    "experimental_data.json",
+                    os.path.join(os.path.dirname(__file__), "experimental_data.json"),
+                    os.path.join(os.getcwd(), "experimental_data.json")
+                ]
+
+                exp_file_path = None
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        exp_file_path = path
+                        break
+
+                if exp_file_path and os.path.exists(exp_file_path):
+                    exp_data = pd.read_json(exp_file_path)
+
+                    # Подготовка данных для таблицы сравнения
+                    comparison_rows = []
+
+                    # Для каждой толщины
+                    thickness_columns = {
+                        "3 мм": 3,
+                        "5 мм": 5,
+                        "10 мм": 10,
+                        "15 мм": 15,
+                        "20 мм": 20
+                    }
+
+                    for col_name, delta_np in thickness_columns.items():
+                        if col_name in exp_data.columns and delta_np in calculated_data:
+                            # Получаем экспериментальные точки (не NaN)
+                            exp_points = exp_data[['Время, мин', col_name]].dropna()
+
+                            # Получаем расчетные данные для этой толщины
+                            calc_df = calculated_data[delta_np]
+
+                            for _, row in exp_points.iterrows():
+                                time_exp = row['Время, мин']
+                                temp_exp = row[col_name]
+
+                                # Интерполяция расчетного значения для данного времени
+                                temp_calc = np.interp(
+                                    time_exp,
+                                    calc_df['Time_min'],
+                                    calc_df['T_steel']
+                                )
+
+                                # Вычисление процента расхождения
+                                # Формула: ((Расчет - Эксперимент) / Эксперимент) * 100
+                                if temp_exp != 0:
+                                    deviation_percent = ((temp_calc - temp_exp) / temp_exp) * 100
+                                else:
+                                    deviation_percent = 0
+
+                                comparison_rows.append({
+                                    'Толщина, мм': delta_np,
+                                    'Время, мин': time_exp,
+                                    'Эксперимент, °C': temp_exp,
+                                    'Расчет, °C': temp_calc,
+                                    'Расхождение, %': deviation_percent
+                                })
+
+                    # Создание DataFrame для таблицы
+                    if comparison_rows:
+                        df_comparison = pd.DataFrame(comparison_rows)
+
+                        # Форматирование DataFrame для отображения
+                        df_display = df_comparison.copy()
+                        df_display['Расчет, °C'] = df_display['Расчет, °C'].round(1)
+                        df_display['Расхождение, %'] = df_display['Расхождение, %'].round(2)
+
+                        # Стилизация таблицы с цветовым кодированием по расхождению
+                        def color_deviation(val):
+                            """Применяет цветовое кодирование к ячейкам расхождения"""
+                            if abs(val) < 5:
+                                color = '#90EE90'  # Светло-зеленый для отличного совпадения
+                            elif abs(val) < 10:
+                                color = '#FFFFE0'  # Светло-желтый для хорошего совпадения
+                            elif abs(val) < 15:
+                                color = '#FFD700'  # Золотой для удовлетворительного
+                            else:
+                                color = '#FFA07A'  # Светло-красный для большого расхождения
+                            return f'background-color: {color}'
+
+                        # Применяем стилизацию
+                        styled_df = df_display.style.map(
+                            color_deviation,
+                            subset=['Расхождение, %']
+                        ).format({
+                            'Эксперимент, °C': '{:.1f}',
+                            'Расчет, °C': '{:.1f}',
+                            'Расхождение, %': '{:+.2f}'
+                        })
+
+                        # Отображение таблицы
+                        st.dataframe(styled_df, width='stretch', height=400)
+
+                        # Статистика
+                        st.markdown("### 📈 Статистика расхождений")
+                        col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
+
+                        with col_stat1:
+                            mean_dev = df_comparison['Расхождение, %'].abs().mean()
+                            st.metric("Среднее отклонение", f"{mean_dev:.2f}%")
+
+                        with col_stat2:
+                            max_dev = df_comparison['Расхождение, %'].abs().max()
+                            st.metric("Максимальное отклонение", f"{max_dev:.2f}%")
+
+                        with col_stat3:
+                            min_dev = df_comparison['Расхождение, %'].abs().min()
+                            st.metric("Минимальное отклонение", f"{min_dev:.2f}%")
+
+                        with col_stat4:
+                            std_dev = df_comparison['Расхождение, %'].abs().std()
+                            st.metric("Стандартное отклонение", f"{std_dev:.2f}%")
+
+                    else:
+                        st.info("Нет данных для сравнения")
+                else:
+                    st.info("Файл с экспериментальными данными не найден")
+
+            except Exception as e:
+                st.warning(f"Не удалось создать таблицу сравнения: {e}")
 
 
 if __name__ == "__main__":

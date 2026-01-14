@@ -209,11 +209,15 @@ def calculate_geometry_circ_tube(d_mm, t_mm):
         "type": "circ_tube"
     }
 
-def get_phi_coeffs(section_type):
+def get_phi_coeffs(section_type, is_box_channel=False):
     """
     Возвращает коэффициенты alpha, beta и дополнительные параметры для расчета fi.
     По Таблице 4.1 (СП 16.13330 / Пособие).
-    
+
+    Args:
+        section_type: тип сечения
+        is_box_channel: True если это коробчатое сечение из двух швеллеров
+
     Returns:
         alpha (float)
         beta (float)
@@ -225,9 +229,15 @@ def get_phi_coeffs(section_type):
         # Threshold 3.8
         return 0.03, 0.06, 3.8, 'a'
     elif section_type == "channel":
-        # Curve 'c' (0.04, 0.14) - Channels (Швеллер)
-        # Threshold 5.8
-        return 0.04, 0.14, 5.8, 'c'
+        # Для коробчатого сечения из двух швеллеров используем кривую 'b'
+        if is_box_channel:
+            # Curve 'b' (0.04, 0.09) - Box section from two channels
+            # Threshold 4.4
+            return 0.04, 0.09, 4.4, 'b'
+        else:
+            # Curve 'c' (0.04, 0.14) - Single Channels (Швеллер)
+            # Threshold 5.8
+            return 0.04, 0.14, 5.8, 'c'
     elif section_type == "ibeam":
         # Curve 'b' (0.04, 0.09) - Rolled I-beams
         # Threshold 4.4
@@ -298,24 +308,27 @@ def calc_gamma_tension(n_load, area, ry, gamma_c=1.0):
     val = n_load / (area * ry * gamma_c)
     return val
 
-def calc_gamma_compression_stability(n_load, area, ry, e_modulus, lef_x, lef_y, ix, iy, section_type, gamma_c=1.0):
+def calc_gamma_compression_stability(n_load, area, ry, e_modulus, lef_x, lef_y, ix, iy, section_type, gamma_c=1.0, is_box_channel=False):
     """
     Расчет коэффициента при центральном сжатии с учетом устойчивости.
     Возвращает словарь с результатом и промежуточными значениями.
+
+    Args:
+        is_box_channel: True если это коробчатое сечение из двух швеллеров
     """
-    if area <= 0 or ry <= 0: 
+    if area <= 0 or ry <= 0:
         return {"val": 0, "phi": 0, "lambda_bar": 0, "lambda_val": 0, "axis": "N/A", "delta": 0, "alpha": 0, "beta": 0, "method": "error", "threshold": 0, "curve_code": "?"}
-    
+
     # Гибкости
     lambda_x = lef_x / ix if ix > 0 else 999
     lambda_y = lef_y / iy if iy > 0 else 999
-    
+
     # Максимальная гибкость определяет расчет
     lambda_max = max(lambda_x, lambda_y)
     axis = "x" if lambda_x >= lambda_y else "y"
-    
+
     # Коэффициенты alpha, beta, threshold, curve_code
-    alpha, beta, threshold, curve_code = get_phi_coeffs(section_type)
+    alpha, beta, threshold, curve_code = get_phi_coeffs(section_type, is_box_channel)
     
     # Расчет фи и условной гибкости
     phi, delta, lambda_bar, method = calc_phi(lambda_max, ry, e_modulus, alpha, beta, threshold, curve_code)
