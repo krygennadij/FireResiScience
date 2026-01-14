@@ -731,8 +731,9 @@ def main():
                 )
             else:  # connection_type == "box"
                 # Два швеллера соединены как коробчатое сечение - периметр как у прямоугольной трубы
+                # Ширина коробчатого сечения = 2*b (две полки швеллеров)
                 perimeter_mm = thermal.calc_heated_perimeter_rect_tube(
-                    geom_params['h_mm'], geom_params['b_mm'],
+                    geom_params['h_mm'], 2 * geom_params['b_mm'],
                     exposure=exposure_mode
                 )
         else:
@@ -1002,13 +1003,13 @@ def main():
                             p_formula_tex = r"2h + 3b - 2t_w"
                             p_subst_tex = fr"2 \cdot {h:.0f} + 3 \cdot {b:.0f} - 2 \cdot {tw:.1f}"
                     else:  # connection_type == "box"
-                        # Два швеллера как коробчатое сечение
+                        # Два швеллера как коробчатое сечение (ширина = 2*b)
                         if exposure_mode == "4_sides":
+                            p_formula_tex = r"2(h + 2b)"
+                            p_subst_tex = fr"2({h:.0f} + 2 \cdot {b:.0f})"
+                        else:
                             p_formula_tex = r"2(h + b)"
                             p_subst_tex = fr"2({h:.0f} + {b:.0f})"
-                        else:
-                            p_formula_tex = r"2h + b"
-                            p_subst_tex = fr"2 \cdot {h:.0f} + {b:.0f}"
                 else:
                     # Одиночный швеллер
                     if exposure_mode == "4_sides":
